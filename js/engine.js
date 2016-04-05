@@ -23,9 +23,12 @@ var Engine = (function(global) {
         win = global.window,
         canvas = doc.createElement('canvas'),
         ctx = canvas.getContext('2d'),
+        playerInitialX = 2 * 101,
+        playerInitialY = 5 * 83 - 10,
+        betweenRound = false,
         lastTime;
 
-    canvas.width = 505;
+    canvas.width = 1000;
     canvas.height = 606;
     doc.body.appendChild(canvas);
 
@@ -80,7 +83,29 @@ var Engine = (function(global) {
      */
     function update(dt) {
         updateEntities(dt);
-        // checkCollisions();
+        checkCollisions();
+    }
+
+    function checkCollisions() {
+        rocks.forEach(function(rock) {
+            if (Math.abs(rock.x - player.tempX) < 40 && Math.abs(rock.y - player.tempY) == 10) {
+                player.tempX = player.x;
+                player.tempY = player.y;
+            }
+        })
+        player.update();
+        allEnemies.forEach(function(enemy) {
+            if (Math.abs(enemy.x - player.tempX) < 40 && Math.abs(enemy.y - player.tempY) == 10) {
+                reset();
+            }
+        });
+    }
+
+    function checkSucess() {
+        if (player.y == -10) {
+            return true;
+        }
+        return false;
     }
 
     /* This is called by the update function and loops through all of the
@@ -94,7 +119,6 @@ var Engine = (function(global) {
         allEnemies.forEach(function(enemy) {
             enemy.update(dt);
         });
-        player.update();
     }
 
     /* This function initially draws the "game level", it will then call
@@ -108,12 +132,12 @@ var Engine = (function(global) {
          * for that particular row of the game level.
          */
         var rowImages = [
-                'images/water-block.png',   // Top row is water
-                'images/stone-block.png',   // Row 1 of 3 of stone
-                'images/stone-block.png',   // Row 2 of 3 of stone
-                'images/stone-block.png',   // Row 3 of 3 of stone
-                'images/grass-block.png',   // Row 1 of 2 of grass
-                'images/grass-block.png'    // Row 2 of 2 of grass
+                'images/water-block.png', // Top row is water
+                'images/stone-block.png', // Row 1 of 3 of stone
+                'images/stone-block.png', // Row 2 of 3 of stone
+                'images/stone-block.png', // Row 3 of 3 of stone
+                'images/grass-block.png', // Row 1 of 2 of grass
+                'images/grass-block.png' // Row 2 of 2 of grass
             ],
             numRows = 6,
             numCols = 5,
@@ -137,6 +161,28 @@ var Engine = (function(global) {
         }
 
         renderEntities();
+        if (hearts.num == 0) {
+            player.toHandleInput = false;
+            ctx.font = "60px Georgia";
+            ctx.fillText("Game Over", 100, 300);
+            ctx.font = "30px Georgia";
+            ctx.fillText("Press Enter to Continue", 100, 360);
+            rocks.length = 0;
+        }
+        if (checkSucess()) {
+            ctx.font = "60px Georgia";
+            ctx.fillText("Round " + hearts.round, 150, 300);
+            if (!betweenRound) {
+                betweenRound = true;
+                setTimeout(function() {
+                    hearts.round++;
+                    player.tempX = playerInitialX;
+                    player.tempY = playerInitialY;
+                    rocks.push(new Rock(randomNum() + 1, randomNum()));
+                    betweenRound = false;
+                }, 2000);
+            }
+        }
     }
 
     /* This function is called by the render function and is called on each game
@@ -152,6 +198,10 @@ var Engine = (function(global) {
         });
 
         player.render();
+        hearts.render();
+        rocks.forEach(function(rock) {
+            rock.render();
+        });
     }
 
     /* This function does nothing but it could have been a good place to
@@ -159,7 +209,11 @@ var Engine = (function(global) {
      * those sorts of things. It's only called once by the init() method.
      */
     function reset() {
-        // noop
+        if (player.x != playerInitialX || player.y != playerInitialY) {
+            hearts.num--;
+        }
+        player.tempX = playerInitialX;
+        player.tempY = playerInitialY;
     }
 
     /* Go ahead and load all of the images we know we're going to need to
@@ -171,7 +225,9 @@ var Engine = (function(global) {
         'images/water-block.png',
         'images/grass-block.png',
         'images/enemy-bug.png',
-        'images/char-boy.png'
+        'images/char-boy.png',
+        'images/Heart.png',
+        'images/Rock.png'
     ]);
     Resources.onReady(init);
 
